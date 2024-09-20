@@ -154,7 +154,7 @@ namespace TimeKeeper
             users[currentUser].Minutes = 0;
 
             //bool result = WindowsUserFinder.ForceLogout(sessionId);
-            bool result = WindowsUserFinder.ForceLock(sessionId);
+            bool result = WindowsUserFinder.ForceLock();
 
             if(!result)
             {

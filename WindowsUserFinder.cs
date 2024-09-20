@@ -128,11 +128,6 @@ namespace TimeKeeper
 
         public static bool ForceLock()
         {
-            if (sessionId < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(sessionId), "Session ID must be a non-negative integer.");
-            }
-
             try
             {
                 ProcessStartInfo processStartInfo = new ProcessStartInfo("rundll32.exe user32.dll, LockWorkStation")
@@ -145,6 +140,8 @@ namespace TimeKeeper
                 {
                     process.WaitForExit();
                 }
+
+                return true;
             }
             catch (Exception ex)
             {
