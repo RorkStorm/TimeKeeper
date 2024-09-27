@@ -154,14 +154,14 @@ namespace TimeKeeper
             users[currentUser].Minutes = 0;
 
             //bool result = WindowsUserFinder.ForceLogout(sessionId);
-            bool result = WindowsUserFinder.ForceLock();
+            bool result = WindowsUserFinder.ForceLockFromSessionId(sessionId);
 
-            if(!result)
+            /*if(!result)
             {
                 logger.Debug($"Lock operation failed. Trying a LogOff operation.");
 
                 result = WindowsUserFinder.ForceLogout(sessionId);
-            }
+            }*/
 
             logger.Debug($"Logout operation status: {result}");
         }

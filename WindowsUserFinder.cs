@@ -1,4 +1,5 @@
-﻿using NLog;
+﻿using murrayju.ProcessExtensions;
+using NLog;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Topshelf.Logging;
@@ -15,6 +16,12 @@ namespace TimeKeeper
 
         [DllImport("Wtsapi32.dll", SetLastError = true)]
         private static extern bool WTSLogoffSession(IntPtr hServer, int sessionId, bool bWait);
+
+        [DllImport("user32.dll")]
+        public static extern void LockWorkStation();
+
+        [DllImport("Wtsapi32.dll")]
+        private static extern bool WTSQueryUserToken(int SessionId, out IntPtr pToken);
 
         public enum WtsInfoClass
         {
@@ -130,16 +137,7 @@ namespace TimeKeeper
         {
             try
             {
-                ProcessStartInfo processStartInfo = new ProcessStartInfo("rundll32.exe user32.dll, LockWorkStation")
-                {
-                    CreateNoWindow = true,
-                    UseShellExecute = false
-                };
-
-                using (Process process = Process.Start(processStartInfo))
-                {
-                    process.WaitForExit();
-                }
+                LockWorkStation();
 
                 return true;
             }
@@ -148,6 +146,22 @@ namespace TimeKeeper
                 logger.Debug($"Failed to lock session : {ex.Message}");
                 return false;
             }
+        }
+
+        public static bool ForceLockFromSessionId(int sessionId)
+        {
+            try
+            {
+                Directory.SetCurrentDirectory(Environment.SystemDirectory);
+                return ProcessExtensions.StartProcessAsCurrentUser("Lock.bat");
+
+                //return ProcessExtensions.StartProcessAsCurrentUser(@"C:\WINDOWS\system32\rundll32.exe", cmdLine:"user32.dll,LockWorkStation");
+            }
+            catch (Exception ex)
+            {
+                logger.Debug($"Failed to lock session: {ex.Message}");
+            }
+            return false;
         }
     }
 }
