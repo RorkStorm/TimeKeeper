@@ -1,7 +1,8 @@
-﻿using NLog;
+﻿using murrayju.ProcessExtensions;
+using NLog;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using murrayju.ProcessExtensions;
+using Topshelf.Logging;
 
 namespace TimeKeeper
 {
@@ -43,6 +44,8 @@ namespace TimeKeeper
             WTSClientInfo,
             WTSSessionInfo,
         }
+
+        private static readonly LogWriter logger = HostLogger.Get<WindowsUserFinder>();
 
         public static string GetUsernameBySessionId(int sessionId, bool prependDomain)
         {
