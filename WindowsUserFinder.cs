@@ -1,5 +1,7 @@
-﻿using System.Diagnostics;
+﻿using NLog;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
+using murrayju.ProcessExtensions;
 
 namespace TimeKeeper
 {
@@ -67,14 +69,16 @@ namespace TimeKeeper
         {
             try
             {
-                Process.Start(new ProcessStartInfo("logoff", sessionId.ToString()) { CreateNoWindow = true, UseShellExecute = false });
-                return true;
+                Directory.SetCurrentDirectory(Environment.SystemDirectory);
+                return ProcessExtensions.StartProcessAsCurrentUser("Lock.bat");
+
+                //return ProcessExtensions.StartProcessAsCurrentUser(@"C:\WINDOWS\system32\rundll32.exe", cmdLine:"user32.dll,LockWorkStation");
             }
             catch (Exception ex)
             {
-                // Log the exception if necessary
-                return false;
+                logger.Debug($"Failed to lock session: {ex.Message}");
             }
+            return false;
         }
     }
 }
