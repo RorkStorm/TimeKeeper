@@ -5,6 +5,8 @@ VisualStudioVersion = 17.10.35122.118
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TimeKeeper", "TimeKeeper.csproj", "{E6AD5484-E710-4A07-BAC3-7B931436350C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TimeKeeperTests", "..\TimeKeeperTests\TimeKeeperTests.csproj", "{FEE81E17-1ED1-4EF0-AD9C-69A88E431FB6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{E6AD5484-E710-4A07-BAC3-7B931436350C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E6AD5484-E710-4A07-BAC3-7B931436350C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E6AD5484-E710-4A07-BAC3-7B931436350C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FEE81E17-1ED1-4EF0-AD9C-69A88E431FB6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FEE81E17-1ED1-4EF0-AD9C-69A88E431FB6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FEE81E17-1ED1-4EF0-AD9C-69A88E431FB6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FEE81E17-1ED1-4EF0-AD9C-69A88E431FB6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
