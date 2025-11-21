@@ -104,50 +104,6 @@ namespace TimeKeeper
             return null;
         }
 
-        public static bool ForceLogout(int sessionId)
-        {
-            if (sessionId < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(sessionId), "Session ID must be a non-negative integer.");
-            }
-
-            try
-            {
-                ProcessStartInfo processStartInfo = new ProcessStartInfo("logoff", sessionId.ToString())
-                {
-                    CreateNoWindow = true,
-                    UseShellExecute = false
-                };
-
-                using (Process process = Process.Start(processStartInfo))
-                {
-                    process.WaitForExit();
-                }
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                logger.Debug($"Failed to log off session {sessionId}: {ex.Message}");
-                return false;
-            }
-        }
-
-        public static bool ForceLock()
-        {
-            try
-            {
-                LockWorkStation();
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                logger.Debug($"Failed to lock session : {ex.Message}");
-                return false;
-            }
-        }
-
         public static bool ForceLockFromSessionId(int sessionId)
         {
             try
