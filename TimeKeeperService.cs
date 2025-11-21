@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Configuration;
+using System.Diagnostics;
 using Topshelf;
 using Topshelf.Logging;
 using Timer = System.Timers.Timer;
@@ -8,48 +9,33 @@ namespace TimeKeeper
     internal class TimeKeeperService
     {
         private readonly LogWriter logger;
-        private readonly Dictionary<string, TimeCounter> users;
-        private Timer sessionTimer;
+        public Dictionary<string, TimeCounter> users; 
 
         public TimeKeeperService()
         {
             logger = HostLogger.Get<TimeKeeperService>();
-            users = new Dictionary<string, TimeCounter>();
-            ConfigureUsers();
+            configureUsers();
         }
 
-        private void ConfigureUsers()
+        private void configureUsers()
         {
-            try
-            {
-                var builder = new ConfigurationBuilder().AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-                IConfiguration configuration = builder.Build();
-                var timeCountersSection = configuration.GetSection("TimeCounters").GetChildren();
+            var builder = new ConfigurationBuilder()
+                .AddJsonFile("appsettings.json");
 
-                foreach (var item in timeCountersSection)
+            IConfiguration configuration = builder.Build();
+
+            var timeCountersSection = configuration.GetSection("TimeCounters").GetChildren();
+
+            users = new Dictionary<string, TimeCounter>();
+
+            foreach (var item in timeCountersSection)
+            {
+                int defaultMinutes;
+                if (int.TryParse(item.Value, out defaultMinutes))
                 {
-                    if (int.TryParse(item.Value, out int defaultMinutes))
-                    {
-                        users.Add(item.Key, new TimeCounter
-                        {
-                            Day = DateTime.Today,
-                            Minutes = defaultMinutes,
-                            DefaultMinutes = defaultMinutes,
-                            LastLogOn = DateTime.Now
-                        });
-                        logger.Debug($"Loading User: {item.Key} with Values: {users[item.Key]}");
-                    }
+                    users.Add(item.Key, new TimeCounter { Day = DateTime.Today, Minutes = defaultMinutes, DefaultMinutes = defaultMinutes, LastLogOn = DateTime.Now });
+                    logger.Debug($"Loading User : {item.Key} with Values : {users[item.Key]}");
                 }
-            }
-            catch (FileNotFoundException ex)
-            {
-                logger.Error("Configuration file not found.", ex);
-                throw;
-            }
-            catch (Exception ex)
-            {
-                logger.Error("Error configuring users.", ex);
-                throw;
             }
         }
 
@@ -63,113 +49,75 @@ namespace TimeKeeper
             logger.Debug("TimeKeeper service stopped.");
         }
 
-        public void SessionSwitch(SessionChangedArguments sessionArgs)
+        public void SessionSwitch(SessionChangedArguments chg)
         {
-            try
-            {
-                string currentUser = WindowsUserFinder.GetUsernameBySessionId(sessionArgs.SessionId, false);
-                logger.Debug($"Session Changed for current user: {currentUser}");
-                logger.Debug($"SessionChangeReasonCode = {sessionArgs.ReasonCode}");
+            string currentUser = WindowsUserFinder.GetUsernameBySessionId(chg.SessionId, false);
+            
+            logger.Debug($"Session Changed for current user: {currentUser}");
+            logger.Debug($"SessionChangeReasonCode = {chg.ReasonCode}");
 
-                if (users.ContainsKey(currentUser))
+            Timer timer = new Timer() { AutoReset = true };
+
+            if ((chg.ReasonCode == SessionChangeReasonCode.SessionLogon || chg.ReasonCode == SessionChangeReasonCode.SessionUnlock) && users.ContainsKey(currentUser))
+            {
+                // A new session has started
+                logger.Debug("A new session has started.");
+
+                //If the session starts another day than the Svc startup date, we reset the time counter
+                if (users[currentUser].Day != DateTime.Today)
                 {
-                    HandleSessionChange(sessionArgs, currentUser);
+                    users[currentUser].Day = DateTime.Today;
+                    users[currentUser].Minutes = users[currentUser].DefaultMinutes;
+                }
+
+                users[currentUser].LastLogOn = DateTime.Now;
+
+                if (checkForKidsLogon(currentUser))
+                {
+                    logger.Debug($"Loading User : {currentUser} with Values : {users[currentUser]}");
+
+                    timer.Interval = users[currentUser].Minutes * 60 * 1000;  // Convert minutes to milliseconds
+                    timer.Elapsed += (sender, eventArgs) => forceLogout(currentUser, chg.SessionId);
+                    timer.Start();
+                }
+                else
+                {
+                    forceLogout(currentUser, chg.SessionId);
                 }
             }
-            catch (Exception ex)
+
+            if (users.ContainsKey(currentUser) && (chg.ReasonCode == SessionChangeReasonCode.SessionLogoff || chg.ReasonCode == SessionChangeReasonCode.SessionLock))
             {
-                logger.Error("Error handling session switch.", ex);
+                logger.Debug("A session is closed.");
+                users[currentUser].Minutes = calculateRemainingMinutes(users[currentUser]);
+                timer.Stop();
             }
         }
 
-        private void HandleSessionChange(SessionChangedArguments sessionArgs, string currentUser)
+        private void forceLogout(string currentUser, int sessionId)
         {
-            try
-            {
-                if (sessionArgs.ReasonCode == SessionChangeReasonCode.SessionLogon || sessionArgs.ReasonCode == SessionChangeReasonCode.SessionUnlock)
-                {
-                    HandleSessionStart(currentUser, sessionArgs.SessionId);
-                }
-                else if (sessionArgs.ReasonCode == SessionChangeReasonCode.SessionLogoff || sessionArgs.ReasonCode == SessionChangeReasonCode.SessionLock)
-                {
-                    HandleSessionEnd(currentUser);
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Error("Error handling session change.", ex);
-            }
-        }
-
-        private void HandleSessionStart(string currentUser, int sessionId)
-        {
-            logger.Debug("A new session has started.");
-
-            if (users[currentUser].Day != DateTime.Today)
-            {
-                ResetUserTimeCounter(currentUser);
-            }
-
-            users[currentUser].LastLogOn = DateTime.Now;
-
-            if (IsUserAllowedToLogon(currentUser))
-            {
-                StartSessionTimer(currentUser, sessionId);
-            }
-            else
-            {
-                ForceLogout(currentUser, sessionId);
-            }
-        }
-
-        private void HandleSessionEnd(string currentUser)
-        {
-            logger.Debug("A session is closed.");
-            users[currentUser].Minutes = CalculateRemainingMinutes(users[currentUser]);
-            sessionTimer?.Stop();
-        }
-
-        private void ResetUserTimeCounter(string currentUser)
-        {
-            users[currentUser].Day = DateTime.Today;
-            users[currentUser].Minutes = users[currentUser].DefaultMinutes;
-        }
-
-        private bool IsUserAllowedToLogon(string currentUser)
-        {
-            return users[currentUser].Minutes > 0;
-        }
-
-        private void StartSessionTimer(string currentUser, int sessionId)
-        {
-            sessionTimer = new Timer(users[currentUser].Minutes * 60 * 1000) { AutoReset = false };
-            sessionTimer.Elapsed += (sender, eventArgs) => ForceLogout(currentUser, sessionId);
-            sessionTimer.Start();
-            logger.Debug($"Loading User: {currentUser} with Values: {users[currentUser]}");
-        }
-
-        private void ForceLogout(string currentUser, int sessionId)
-        {
-            logger.Debug($"Logout operation triggered for User {currentUser} and Session: {sessionId}");
+            logger.Debug($"Logout operation triggered for User {currentUser} and Session : {sessionId}");
             users[currentUser].Minutes = 0;
 
-            //bool result = WindowsUserFinder.ForceLogout(sessionId);
-            bool result = WindowsUserFinder.ForceLock(sessionId);
+            bool result = WindowsUserFinder.ForceLogout(sessionId);
 
-            if(!result)
-            {
-                logger.Debug($"Lock operation failed. Trying a LogOff operation.");
-
-                result = WindowsUserFinder.ForceLogout(sessionId);
-            }
-
-            logger.Debug($"Logout operation status: {result}");
+            logger.Debug($"Logout operation status : {result}");
         }
 
-        private int CalculateRemainingMinutes(TimeCounter timeCounter)
+        private bool checkForKidsLogon(string currentUser)
+        {
+            if (users[currentUser].Minutes == 0)
+                return false;
+            else
+                return true;
+        }
+
+        private int calculateRemainingMinutes(TimeCounter timeCounter)
         {
             TimeSpan remainingTime = timeCounter.LastLogOn.AddMinutes(timeCounter.Minutes) - DateTime.Now;
-            return Math.Max((int)remainingTime.TotalMinutes, 0);
+            return (int)remainingTime.TotalMinutes > 0 ? (int)remainingTime.TotalMinutes : 0;
         }
     }
 }
+
+

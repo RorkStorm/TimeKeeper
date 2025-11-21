@@ -1,0 +1,50 @@
+{
+  "version": "v1",
+  "commands": [
+    {
+      "id": "6a9962f6-3f20-4dd3-b826-2574b2b55779",
+      "type": "shared",
+      "version": "v1",
+      "name": "check-vulnerabilities",
+      "description": "Scan for Vulnerabilities",
+      "updatedAt": "1740732468679",
+      "promptTemplate": [
+        {
+          "type": "text",
+          "text": "Optimize the code from $Open file to avoid vulnerabilities from the OWASP Top 10."
+        }
+      ],
+      "promptTemplateText": "Optimize the code from $Open file to avoid vulnerabilities from the OWASP Top 10."
+    },
+    {
+      "id": "bd7ad401-eae4-452d-9b69-d62c29faad46",
+      "type": "shared",
+      "version": "v1",
+      "name": "clean-code",
+      "description": "Check the code against the recomandations from Uncle Bob",
+      "updatedAt": "1740732436019",
+      "promptTemplate": [
+        {
+          "type": "text",
+          "text": "Optimize the code from $Open file based on recommendations from the book \"Clean Code\" from Robert C. \"Uncle Bob\" Martin"
+        }
+      ],
+      "promptTemplateText": "Optimize the code from $Open file based on recommendations from the book \"Clean Code\" from Robert C. \"Uncle Bob\" Martin"
+    },
+    {
+      "id": "3ace3f17-f08d-4b4f-a45d-51cdbb115396",
+      "type": "shared",
+      "version": "v1",
+      "name": "ut-with-nunit-moq",
+      "description": "Force UT with Nunit and Moq",
+      "updatedAt": "1740732498126",
+      "promptTemplate": [
+        {
+          "type": "text",
+          "text": "Use NUnit and Moq Generate unit tests for public methods, using all available paths driving to private methods of the $Open file"
+        }
+      ],
+      "promptTemplateText": "Use NUnit and Moq Generate unit tests for public methods, using all available paths driving to private methods of the $Open file"
+    }
+  ]
+}
